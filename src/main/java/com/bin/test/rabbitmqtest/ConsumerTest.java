@@ -32,37 +32,36 @@ private static Logger logger = LoggerFactory.getLogger(SendTest.class);
 	private void consumeTask() throws IOException {
 		
 		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("10.68.52.203");
+		factory.setHost("127.0.0.1");
 		totalCountIndex = new AtomicInteger(messageTotalCount);
 		for (int connectorCount = 0; connectorCount < connectorTotalCount; connectorCount++) {
 			int connectorIndex = connectorCount;
 			final Connection connection = factory.newConnection();
 			
 			for (int i = 0; i < queueCount; i++) {
-				int queueIndex = i;
-			
+
 				List<Thread> threads = new ArrayList<Thread>();
 				for (int j = 0; j < consumerThreadCount; j++) {
 					
 					final long[] times = new long[consumerThreadCount];
 					
 					final Channel channel = connection.createChannel();
-					channel.queueDeclare(String.valueOf(i), true, false, false, null);
 //					channel.basicQos(prefetchCount, true);
 //					channel.txSelect();
 					Thread sendThread = new Thread(() -> {
 						long startTime = System.currentTimeMillis();
 						String threadName = Thread.currentThread().getName();
-						logger.debug("connector {} thread name {} queue {}", new Object[]{connectorIndex, threadName, String.valueOf(queueIndex)});
+						logger.debug("connector {} thread name {} queue {}", new Object[]{connectorIndex, threadName, "broadcast-event"});
 						
 						try {
-							channel.basicConsume(String.valueOf(queueIndex), true, new DefaultConsumer(channel) {
+							channel.basicConsume("eb-attempt-event-large-queue", false, new DefaultConsumer(channel) {
 								@Override
                                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-									totalCountIndex.decrementAndGet();
+                                    channel.basicAck(envelope.getDeliveryTag(),false);
+                                    totalCountIndex.decrementAndGet();
+
 									if (totalCountIndex.get() == 0) {
 										long time = System.currentTimeMillis() - startTime;
-										
 										if (time == 0) {
 											System.out.println("something error.");
 											logger.debug("something error.");

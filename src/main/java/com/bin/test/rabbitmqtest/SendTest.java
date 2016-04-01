@@ -30,13 +30,13 @@ public class SendTest {
 	private void pushTask() throws IOException {
 		
 		ConnectionFactory factory = new ConnectionFactory();
-		factory.setHost("10.68.52.203");
+		factory.setHost("127.0.0.1");
 		for (int connectorCount = 0; connectorCount < connectorTotalCount; connectorCount++) {
 			int connectorIndex = connectorCount;
 			final Connection connection = factory.newConnection();
 			
 			final Channel channel = connection.createChannel();
-			channel.exchangeDeclare("testexchange", "topic", true);
+			channel.exchangeDeclare("initnotif-exchange", "initnotif", true);
 			channel.confirmSelect();
 			
 			for (int i = 0; i < queueCount; i++) {

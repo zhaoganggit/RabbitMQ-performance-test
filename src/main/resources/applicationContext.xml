@@ -16,7 +16,6 @@
             </list>
         </property>
     </bean>
-    
     <bean id="sendtest" class="com.bin.test.rabbitmqtest.SendTest">
     	<property name="queueCount" value="${queueCount}"></property>
     	<property name="sendThreadCount" value="${sendThreadCount}"></property>
