@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <bean id="systemPropertyPlaceholderConfigurer" class="com.bin.test.rabbitmqtest.SystemPropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="propertyName" value="rabbitmqtest.properties" />
+        <property name="locations">
+            <list>
+                <value>classpath:/rabbitmqtest.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="cachingConnectionFactory"  class="org.springframework.amqp.rabbit.connection.CachingConnectionFactory"  >
+        <property name="addresses"          value="${rabbit.replicateset:127.0.0.1:5672}"/>
+        <property name="virtualHost"        value="${rabbit.vhost:/}" />
+        <property name="username"           value="${rabbit.username:guest}" />
+        <property name="password"           value="${rabbit.password:guest}" />
+        <property name="channelCacheSize"   value="45" />
+    </bean>
+
+    <bean id="rabbitAdmin" class="org.springframework.amqp.rabbit.core.RabbitAdmin">
+        <constructor-arg index="0"  type="org.springframework.amqp.rabbit.connection.ConnectionFactory" > <ref bean="cachingConnectionFactory"/>  </constructor-arg>
+    </bean>
+
+    <bean id="retryTemplate" class="org.springframework.retry.support.RetryTemplate">
+        <property name="backOffPolicy">
+            <bean class="org.springframework.retry.backoff.ExponentialBackOffPolicy">
+                <property name="initialInterval" 	value="100"/>
+                <property name="multiplier" 		value="2"/>
+                <property name="maxInterval" 		value="30000"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="jsonObjectMapper" class="org.codehaus.jackson.map.ObjectMapper">
+        <property name="serializationInclusion" value="NON_NULL"/>
+    </bean>
+
+    <bean id="jsonConverter" class="org.springframework.amqp.support.converter.JsonMessageConverter" >
+        <property name="jsonObjectMapper" ref="jsonObjectMapper"/>
+    </bean>
+
+    <bean id="rabbitTemplate"  class="org.springframework.amqp.rabbit.core.RabbitTemplate" >
+        <property name="connectionFactory" ref="cachingConnectionFactory" />
+        <property name="retryTemplate"     ref="retryTemplate" />
+        <property name="messageConverter"  ref="jsonConverter" />
+        <property name="exchange"          value="${rabbit.exchange:flow-attempt-exchange}" />
+    </bean>
+
+    <bean id="testConfig" class="com.bin.test.rabbitmqtest.ack.TestConfig">
+        <property name="queuesCount" value="600"></property>
+        <property name="batchSize"   value="100"></property>
+        <property name="interval"    value="1000"></property>
+        <property name="ticksBias"   value="200"></property>
+    </bean>
+</beans>
